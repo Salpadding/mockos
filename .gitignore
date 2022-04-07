@@ -1,0 +1,10 @@
+*.o
+*.a
+Image
+hdc.img
+tools/system
+tools/build
+.ccls-cache
+.DS_Store
+.vscode
+bx_enh*
