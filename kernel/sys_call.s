@@ -188,4 +188,16 @@ timer_interrupt:
 .align 4
 
 sys_fork:
-    ret
+    cli # 关闭中断 防止父进程被调度
+	call find_empty_process
+	testl %eax,%eax 
+    js 1f
+	push %gs
+	pushl %esi
+	pushl %edi
+	pushl %ebp
+	pushl %eax
+	call copy_process
+    call switch_to_c
+    addl $20, %esp
+1:  ret

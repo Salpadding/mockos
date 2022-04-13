@@ -1,3 +1,7 @@
+#ifndef SYSTEM_H
+#define SYSTEM_H
+#include <linux/head.h>
+
 /* 利用iret指令实现从内核模式移到用户模式去执行初始任务0 */
 #define move_to_user_mode()						\
 __asm__ (										\
@@ -15,7 +19,8 @@ __asm__ (										\
 	"mov %%ax,%%gs"								\
 	:::"ax")
 
-#define asmbp() __asm__("la:\tnop \n\t" "jmp la\n\t")
+#define asmbp() __asm__("1:\tnop \n\t" "jmp 1b\n\t")
+#define asm_mark(M) asm volatile("pushl %eax\n\t" "movl " M ", %eax\n\t" "popl %eax\n\t")
 
 #define sti() __asm__ ("sti"::)			/* 开中断 */
 #define cli() __asm__ ("cli"::)			/* 关中断 */
@@ -78,6 +83,20 @@ __asm__ (															\
 	)
 
 /** 
+ * 设置陷阱门函数
+ * @param[in]	n		中断号
+ * param[in]	addr	中断程序偏移地址
+ */
+#define set_trap_gate(n, addr)		_set_gate(&idt[n], 15, 0, addr)
+
+/**
+ * 设置系统陷阱门函数
+ * @param[in]	n		中断号
+ * @param[in]	addr	中断程序偏移直
+ */
+#define set_system_gate(n, addr) 	_set_gate(&idt[n], 15, 3, addr)
+
+/** 
  * 设置中断门函数(自动屏蔽随后的中断)
  * @param[in]	n		中断号
  * @param[in]	addr	中断程序偏移地址
@@ -99,3 +118,4 @@ __asm__ (															\
 #define set_ldt_desc(n, addr)	_set_tssldt_desc(((char *) (n)),addr, "0x82")
 
 #define set_system_gate(n, addr) 	_set_gate(&idt[n], 15, 3, addr)
+#endif

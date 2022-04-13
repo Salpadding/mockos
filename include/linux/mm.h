@@ -11,5 +11,7 @@
 extern unsigned char mem_map [ PAGING_PAGES ];
 extern unsigned long HIGH_MEMORY;
 void mem_init(long start_mem, long end_mem);
+extern unsigned long get_free_page(void);
 
+#define invalidate() __asm__("movl %%eax,%%cr3"::"a" (0))
 #endif

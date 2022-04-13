@@ -20,7 +20,7 @@ Image: boot/bootsect boot/setup tools/system tools/build
 	@rm tools/kernel -f
 	@sync > /dev/null
 
-boot/head.o: boot/head.s
+boot/head.o: boot/head.s 
 
 lib/lib.a: FORCE
 	@(cd lib; make)

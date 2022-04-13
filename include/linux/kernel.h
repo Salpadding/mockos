@@ -6,7 +6,7 @@
 #include <stdarg.h>
 int vsprintf(char *buf, const char *fmt, va_list args);
 void verify_area(void * addr, int count);/* 验证给定地址开始的内在块是否超限，若超限则追加内存 */
-volatile void panic(const char * str);  /* 显示内核出错信息，然后进入死循环 */
+extern void panic(const char * str);  /* 显示内核出错信息，然后进入死循环 */
 volatile void do_exit(long error_code); /* 进程退出处理 */
 int printf(const char * fmt, ...);      /* 标准打印显示函数 */
 int printk(const char * fmt, ...);      /* 内核专用的打印信息函数 */
@@ -26,6 +26,9 @@ extern int blankinterval;   /* 设定的屏幕黑屏间隔时间 */
 extern int blankcount;      /* 黑屏时间计数 */
 
 extern int timer_interrupt(void);
+extern int atomic_add(int*, int);
+extern void log_buf(char*, int);
+
 #define free(x) free_s((x), 0)
 
 /*

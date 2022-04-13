@@ -20,6 +20,7 @@
  */
 .text /* stack_start, printk 暂时注释 */
 .globl idt, gdt, pg_dir, tmp_floppy_area
+.globl ignore_int
 /***** 页目录表（0x00000000）将会存放在这里 *****/
 pg_dir:
 
@@ -355,6 +356,6 @@ idt:	.fill 256, 8, 0					# idt is uninitialized
 gdt:
     .quad 0x0000000000000000			/* NULL descriptor */
     .quad 0x00c09a0000000fff			/* 16Mb */		# 0x08，内核代码段，长度16MB
-    .quad 0x00c0920000000fff			/* 16Mb */		# 0x10，内核数据段，长度16MB
-    .quad 0x0000000000000000			/* TEMPORARY - don't use */
+    .quad 0x00c0920000000fff			/* 16Mb */		# 0x10，内核数据段，长度16MB 
+    .quad 0x00cff2000000ffff			/* 显存段 */
     .fill 252, 8, 0						/* space for LDT's and TSS's etc */

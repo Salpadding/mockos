@@ -12,6 +12,7 @@ lib.a: $(objs)
 clean:
 	@rm -f *.o
 	@rm -f *.a
+	@rm -f *.d
 
 
 -include $(deps)
