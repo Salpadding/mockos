@@ -18,7 +18,7 @@ Image: boot/bootsect boot/setup tools/system tools/build
 	@tools/build boot/bootsect boot/setup tools/kernel > Image 2>/dev/null
 	@rm system.tmp
 	@rm tools/kernel -f
-	@sync > /dev/null
+	@sync 
 
 boot/head.o: boot/head.s 
 
@@ -39,7 +39,7 @@ tools/build: tools/build.c
 	$(CC) -o $@ $^
 
 tools/system: boot/head.o init/main.o mm/mm.o kernel/kernel.o lib/lib.a
-	$(LD) $(LDFLAGS) -o $@ $^ > /dev/null
+	$(LD) $(LDFLAGS) -o $@ $^ > System.map
 
 .PHONY: clean FORCE
 

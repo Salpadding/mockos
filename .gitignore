@@ -8,3 +8,4 @@ tools/build
 .DS_Store
 .vscode
 bx_enh*
+*.map
