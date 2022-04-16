@@ -109,4 +109,46 @@ type name(void)		 								\
 	return -1; 										\
 }
 
+/* 有1个参数的系统调用函数	type_name(atype a) */
+#define _syscall1(type, name, atype, a) 			\
+type name(atype a) 									\
+{ 													\
+	long __res; 									\
+	__asm__ volatile ("int $0x80" 					\
+		: "=a" (__res) 								\
+		: "0" (__NR_##name), "b" ((long)(a))); 		\
+	if (__res >= 0) 								\
+		return (type) __res; 						\
+	errno = -__res; 								\
+	return -1; 										\
+}
+
+/* 有2个参数的系统调用函数	type_name(atype a,btype b) */
+#define _syscall2(type, name, atype, a, btype, b) 	\
+type name(atype a, btype b) 						\
+{ 													\
+	long __res; 									\
+	__asm__ volatile ("int $0x80" 					\
+		: "=a" (__res)								\
+		: "0" (__NR_##name), "b" ((long)(a)), "c" ((long)(b))); 	\
+	if (__res >= 0) 								\
+		return (type) __res; 						\
+	errno = -__res; 								\
+	return -1; 										\
+}
+
+/* 有3个参数的系统调用函数	type_name(atype a,btype b,ctype c) */
+#define _syscall3(type, name, atype, a, btype, b, ctype, c) \
+type name(atype a, btype b, ctype c) 				\
+{ 													\
+	long __res; 									\
+	__asm__ volatile ("int $0x80"					\
+		: "=a" (__res) 								\
+		: "0" (__NR_##name), "b" ((long)(a)), "c" ((long)(b)), "d" ((long)(c))); \
+	if (__res >= 0) 								\
+		return (type) __res; 						\
+	errno = -__res; 								\
+	return -1; 										\
+}
+
 #endif

@@ -1,6 +1,10 @@
 section .text
+extern sys_log_c
 global atomic_add
 global log_buf
+global sys_log 
+global call_sys_log 
+global get_cs
 
 ; int atomic_add(int*, int)
 atomic_add:
@@ -69,3 +73,30 @@ log_buf:
     pop ecx
     pop  ebp
     ret
+
+
+; eax = buf, ebx = len
+sys_log:
+    push ebx
+    push eax
+    call sys_log_c
+    add  esp, 8
+    iretd
+
+; call_sys_log(buf, len)
+call_sys_log:
+    push ebp
+    mov  ebp, esp
+    push ebx
+    mov  ebx, [ebp + 12]
+    mov  eax, [ebp + 8]
+    int  0x81
+    add  esp, 8
+    pop ebx
+    pop ebp
+    ret
+
+get_cs:
+   mov ax, cs
+   ret
+    

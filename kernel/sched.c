@@ -4,6 +4,8 @@
 #include <linux/mm.h>
 #include <linux/sched.h>
 
+#define LATCH (1193180 / HZ) /* LATCH是设置8253芯片的初值 */
+
 unsigned long volatile jiffies = 0;
 
 struct task_struct *last_task_used_math = NULL; /* 上一个使用过协处理器的进程 */
@@ -69,25 +71,50 @@ void sched_init(void) {
   __asm__("pushfl ; andl $0xffffbfff,(%esp) ; popfl");
   ltr(0);
   lldt(0);
+  outb_p(0x36, 0x43);
+  outb_p(LATCH & 0xff, 0x40);
+  outb(LATCH >> 8, 0x40);
   set_intr_gate(0x20, &timer_interrupt);
   outb(inb_p(0x21) & ~0x01, 0x21);
   /* 设置系统调用的系统陷阱 */
   set_system_gate(0x80, &system_call);
 }
 
-void schedule(){};
-
-void switch_to_c(int nr) {
-    switch_to("__switch_to_c", nr);
+/**
+ * 转换当前任务的状态为可中断的等待状态
+ * 该系统调用将导致进程进入睡眠状态，直到收到一个信号。该信号用于终止进程或者使进程调用一个信号捕
+ * 获函数。只有当捕获了一个信号，并且信号捕获处理函数返回，pause()才会返回。此时pause()返回值应
+ * 该是-1，并且errno被置为EINTR。这里还没有完全实现(直到0.95版)
+ */
+int sys_pause(void) {
+  current->state = TASK_INTERRUPTIBLE;
+  schedule();
+  return 0;
 }
 
-void __attribute__((noinline)) do_timer(long cpl) {
-  // a simple scheduler, always switch to the first
+void __attribute__((noinline)) schedule() {
+  // a simple scheduler, always switch to the next task
   int i;
-  for (i = 0; i < NR_TASKS; i++) {
-    if (task[i] != NULL && task[i]->pid != current->pid && task[i]->state == TASK_RUNNING) {
-      switch_to("__switch_to", i);
+  int k;
+
+  for (i = 0; task[i] != current; i++)
+    ;
+
+  i++;
+  for (;; i++) {
+    k = i % NR_TASKS;
+    if (task[k] == current)
+      return;
+    if (task[k] != NULL && task[k]->state == TASK_RUNNING) {
+      switch_to("__switch_to", k);
       return;
     }
   }
+};
+
+void switch_to_c(int nr) { switch_to("__switch_to_c", nr); }
+
+void __attribute__((noinline)) do_timer(long cpl) {
+    printm("jiffies = %d\n", jiffies);
+    schedule();
 }

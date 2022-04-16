@@ -5,6 +5,8 @@ section .text
 global ignore_int_%1
 ignore_int_%1:
     push %1
+.lp:
+    jmp .lp
     push eax
     push ecx
     push edx

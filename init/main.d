@@ -3,4 +3,4 @@ main.o: init/main.c include/asm/system.h include/linux/head.h \
  include/linux/mm.h include/linux/sched.h include/linux/fs.h \
  include/sys/types.h include/signal.h include/sys/param.h \
  include/sys/resource.h include/sys/time.h include/time.h \
- include/unistd.h
+ include/linux/sys.h include/unistd.h

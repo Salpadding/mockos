@@ -66,8 +66,6 @@ extern int tty_write(unsigned minor, char *buf, int count);
 
 extern unsigned long volatile jiffies;
 
-typedef int (*fn_ptr)();
-
 struct i387_struct {
   long cwd;
   long swd;

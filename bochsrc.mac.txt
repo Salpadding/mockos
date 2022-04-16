@@ -4,3 +4,4 @@ ata0-master: type=disk, path="hdc.img", mode=flat, cylinders=204, heads=16, spt=
 boot: floppy
 cpu: count=1, ips=4000000
 display_library: sdl2
+com1: enabled=1, mode=file, dev=/dev/ttys012
