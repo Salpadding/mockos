@@ -118,4 +118,17 @@ __asm__ (															\
 #define set_ldt_desc(n, addr)	_set_tssldt_desc(((char *) (n)),addr, "0x82")
 
 #define set_system_gate(n, addr) 	_set_gate(&idt[n], 15, 3, addr)
+
+#define use_sys_ds()						\
+__asm__ (										\
+"1:\tmovl $0x1b,%eax\n\t"						\
+	"mov %ax,%ds\n\t"							\
+)
+
+
+#define use_user_ds()						\
+__asm__ (										\
+"1:\tmovl $0x17,%eax\n\t"						\
+	"mov %ax,%ds\n\t"							\
+)
 #endif

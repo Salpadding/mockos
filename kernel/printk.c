@@ -9,15 +9,30 @@
  * point to 'interesting' things. Make a printf with fs-saving, and
  * all is well.
  */
-#include <asm/io.h>
-#include <asm/system.h>
-#include <linux/kernel.h>
 #include <stdarg.h>
 #include <stddef.h>
-#include <string.h>
+#include <asm/io.h>
+#include <linux/kernel.h>
 
-extern int get_cs();
-extern void call_sys_log(void *, int);
+char buf[1024];	/* 显示用的临时缓冲区 */
+char log_buffer[4096]; 
+
+extern int vsprintf(char * buf, const char * fmt, va_list args);
+extern void log_buf(void*, int);
+
+/* 内核使用的显示函数 */
+int printk(const char *fmt, ...)
+{
+	va_list args;
+	int i;
+
+	va_start(args, fmt);
+	i = vsprintf(buf, fmt, args);
+	va_end(args);
+	log_buf(buf, i);
+	return i;
+}
+
 
 #define COM1_PORT 0x3f8 // COM1
 
@@ -44,50 +59,11 @@ int init_serial() {
   return 0;
 }
 
-int is_transmit_empty() { return inb(COM1_PORT + 5) & 0x20; }
-
-void write_serial(char a) {
-  while (is_transmit_empty() == 0)
-    ;
-
-  outb(a, COM1_PORT);
-}
-
-void sys_log_c(const char *buf, int len) {
-  int j;
-  for (j = 0; j < len; j++) {
-    write_serial(buf[j]);
-  }
-}
-
-/* 内核使用的显示函数 */
-int printk(const char *fmt, ...) {
-  va_list args;
-  int i;
-  int j;
-
-  char buf[256];
-  va_start(args, fmt);
-  i = vsprintf(buf, fmt, args);
-  va_end(args);
-  // get cpl
-  int cpl = get_cs() & 3;
-  if (cpl != 0) {
-    // user space
-    call_sys_log(buf, i);
-    return i;
-  }
-
-  for (j = 0; j < i; j++) {
-    write_serial(buf[j]);
-  }
-  return i;
-}
 
 /* 内核使用的显示函数 */
 int printm(const char *fmt, ...) {
   int i;
-  char buf[256];
+  char buf[128];
   va_list args;
   va_start(args, fmt);
   i = vsprintf(buf, fmt, args);
@@ -96,3 +72,4 @@ int printm(const char *fmt, ...) {
   log_buf(buf, i);
   return i;
 }
+

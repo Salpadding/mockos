@@ -261,6 +261,109 @@ __asm__("pushfl ; andl $0xffffbfff,(%esp) ; popfl");
 需要提前复制的,如果父进程在新进程之前被调度了,那么新进程的栈区就被破坏了,可能产生未定义的行为。
 linux 0.12 的 fork 机制不够完善, 没有预先拷贝栈内存, 所以我在实现 fork 的时候把中断暂时关闭然后在 copy_process 成功后立刻调度新进程
 
+22. 内核缓冲区的作用?具体如何实现?
+
+缓冲区是以 1kb 为单位管理的, 未被使用的 block header 位于 free list 中, 已使用的 block header 位于 hash list 中, 两个 list 都是双向链表 
+
+23. 总结了下一些段错误产生的原因:
+
+- 没有定义 direction flag
+- 在用户态访问了内核态的指针
+- 没有正确地设置页表, 产生了缺页异常
+
+24. linux 0.12 的 device 如何编号的?
+
+All devices have a major, minor number pair. The major number is a larger, more generic category (e.g. hard disks, input/output devices etc...) while the minor number is more specific (i.e. tells what bus the device is connected to).
+
+[官方文档](https://www.kernel.org/doc/Documentation/admin-guide/devices.txt)
+
+## 同步
+
+1. __sleep_on, wait_on_buffer
+
+
+```c
+static inline void wait_on_buffer(struct buffer_head * bh)
+{
+	cli();
+	while (bh->b_lock) {	/* 如果已被上锁则进程进入睡眠，等待其解锁 */
+		sleep_on(&bh->b_wait);
+	}
+	sti();
+}
+
+void wake_up(struct task_struct **p)
+{
+	if (p && *p) {
+		if ((**p).state == TASK_STOPPED) {
+			printk("wake_up: TASK_STOPPED");
+		}
+		if ((**p).state == TASK_ZOMBIE) {
+			printk("wake_up: TASK_ZOMBIE");
+		}
+		(**p).state = TASK_RUNNING;
+	}
+}
+
+static inline void __sleep_on(struct task_struct **p, int state)
+{
+	struct task_struct *tmp;
+
+	if (!p) {
+		return;
+	}
+	if (current == &(init_task.task)) {
+		panic("task[0] trying to sleep");
+	}
+	tmp = *p;
+	*p = current;
+	current->state = state;
+repeat:	
+    schedule();
+	if (*p && *p != current) {
+		(**p).state = TASK_RUNNING;
+		current->state = TASK_UNINTERRUPTIBLE;
+		goto repeat;
+	}
+	if (!*p) {
+		printk("Warning: *P = NULL\n\r");
+	}
+	if ((*p = tmp)) {
+		tmp->state = 0;
+	}
+}
+```
+
+__sleep_on 很巧妙地实现了多个线程同步的需求  
+
+这种同步方式需要一个类似如下形式的结构体:
+
+```c
+typedef struct{
+  struct task_struct* wait;
+  int locked;
+} __lock;
+```
+
+例如某场景下, 线程 A, B 在竞争某个资源, 而此时这个资源被 C 持有, 当前假设C是第一个获得该资源的线程
+
+时间片先轮转到了 A, A 调用 wait_on_buffer, 由于此时资源被 C 持有, 所以 buffer 的 b_lock 一定是 true, buffer 的 b_wait 指向的是空指针, 这个可以参考 lock_buffer 的实现, 
+
+所以在 __sleep_on 里面会发生以下几件事:
+
+1. 指向线程C的指针备份到了 tmp
+2. b_lock 指向了 线程 A, A 被标记为不可中断的睡眠状态
+3. 调度器将当前进程轮转到了线程 B
+
+
+接下来时间片轮转到了 B, B 其实干了和 A 差不多的事情, 只不过在 B 的栈上, tmp 备份得到的是 A, 最终 b_lock 指向了线程 B
+
+现在时间片回到了线程 C, C 使用完了资源去唤醒  buffer 的 b_wait， 这里 buffer 的 b_wait 是 B, 所以线程 B 会被先唤醒
+
+时间片回到了 B, 可以看到 B 在 schedule() 返回后, 把 buffer 的 b_wait 改成了 A, 并且把 A 也唤醒了
+
+这种同步方式没有使用到链表, 而是使用线程的栈内存和调度器实现了一个逻辑上的链表, 而且当多个线程被阻塞时,无论哪个线程被先唤醒,因为被唤醒的线程栈上保存了下一个要唤醒的线程,所以被阻塞的线程都会被唤醒
+
 
 ## 遗留问题
 

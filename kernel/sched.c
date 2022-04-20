@@ -4,6 +4,27 @@
 #include <linux/mm.h>
 #include <linux/sched.h>
 
+typedef struct {
+  struct task_struct *wait;
+  int lock;
+} kernel_mutex;
+
+static kernel_mutex kernel_mutxt_a[64];
+
+int sys_klock(int n) {
+  cli();
+  while (kernel_mutxt_a[n].lock) {
+    sleep_on(&kernel_mutxt_a[n].wait);
+  }
+  kernel_mutxt_a[n].lock = 1;
+  sti();
+}
+
+int sys_kunlock(int n) {
+  kernel_mutxt_a[n].lock = 0;
+  wake_up(&kernel_mutxt_a[n].wait);
+}
+
 #define LATCH (1193180 / HZ) /* LATCH是设置8253芯片的初值 */
 
 unsigned long volatile jiffies = 0;
@@ -114,7 +135,68 @@ void __attribute__((noinline)) schedule() {
 
 void switch_to_c(int nr) { switch_to("__switch_to_c", nr); }
 
-void __attribute__((noinline)) do_timer(long cpl) {
-    printm("jiffies = %d\n", jiffies);
-    schedule();
+extern void sync_log_buf();
+
+void __attribute__((noinline)) do_timer(long cpl) { schedule(); }
+
+/**
+ * 将当前任务置为可中断的或不可中断的睡眠状态
+ * @note		该函数存在问题
+ * @param 		p 			任务结构指针
+ * @param 		state 		任务睡眠使用的状态
+ * @return		void
+ */
+static inline void __sleep_on(struct task_struct **p, int state) {
+  // printm("__sleep_on: p.pid = %d state = %d\n", (*p)->pid, state);
+  struct task_struct *tmp;
+
+  if (!p) {
+    return;
+  }
+  if (current == &(init_task.task)) {
+    panic("task[0] trying to sleep");
+  }
+  tmp = *p;
+  *p = current;
+  // printm("__sleep_on: set pid %d state = %d\n", current->pid, state);
+  current->state = state;
+repeat:
+  // printm("__sleep_on: call schedule() reason = __sleep_on()\n");
+  schedule();
+  // printm("__sleep_on: return from repeat: schedule() p.pid = %d current = %d
+  // current state = %d\n", (*p)->pid,current->pid, current->state);
+  if (*p && *p != current) {
+    (**p).state = TASK_RUNNING;
+    current->state = TASK_UNINTERRUPTIBLE;
+    goto repeat;
+  }
+  if (!*p) {
+    printk("Warning: *P = NULL\n\r");
+  }
+  if ((*p = tmp)) {
+    tmp->state = 0;
+  }
+}
+
+void interruptible_sleep_on(struct task_struct **p) {
+  __sleep_on(p, TASK_INTERRUPTIBLE);
+}
+
+void sleep_on(struct task_struct **p) { __sleep_on(p, TASK_UNINTERRUPTIBLE); }
+
+/**
+ * 唤醒不可中断等待任务
+ * @param 		p 		任务结构指针
+ * @return		void
+ */
+void wake_up(struct task_struct **p) {
+  if (p && *p) {
+    if ((**p).state == TASK_STOPPED) {
+      printk("wake_up: TASK_STOPPED");
+    }
+    if ((**p).state == TASK_ZOMBIE) {
+      printk("wake_up: TASK_ZOMBIE");
+    }
+    (**p).state = TASK_RUNNING;
+  }
 }

@@ -1,52 +1,65 @@
 section .text
-extern sys_log_c
-global atomic_add
+extern log_buffer
+;log_buffer equ 0x800000
+buffer_size equ 2048
 global log_buf
-global sys_log 
-global call_sys_log 
-global get_cs
+global sync_log_buf
+global add_loop
+global sys_int
 
-; int atomic_add(int*, int)
+sys_int:
+    iretd
+
+; int atomic_add(edx)
 atomic_add:
-    push ebx
-    push ecx
-    mov ebx, [esp+12]
-.loop:
-    mov eax, [ebx]
+
+add_loop:
+    mov eax, [log_buffer]
+
     mov ecx, eax
-    add ecx, [esp + 16] 
+    add ecx, edx
     
+    cmp ecx, buffer_size 
+    jg  .try
+
     ; cas
-    cmpxchg [ebx], ecx
-    jnz .loop
+    cmpxchg [log_buffer], ecx
+    jnz add_loop
     mov eax, ecx
-    pop ecx
-    pop ebx
     ret
-    mov eax, 0xffffffff
+
+.try:
+    pushf
+    test dword [esp], 0x200
+    add esp, 4
+    ; interrupt is always on in user mode
+    jnz add_loop
+    push edx
+    call sync_log_buf 
+    pop edx
+    jmp add_loop
+
+
 ; void log_buf(char*, int)
 ; void log_buf(char*, int)
 ;              ebp+8, ebp+12
+; for printm
 log_buf:
     push ebp
     mov ebp, esp
 
-    push ecx
     push esi
     push edi
     push ds
     push es
 
-    mov  eax, 0x1b
+    mov  ax, 0x1b
     mov  ds, ax 
 
-    ; call atomic add
-    push dword [ebp + 12]
-    push 0x800000
+    mov  edx, [ebp + 12]    
     call atomic_add
-    add  esp, 8
-    push eax
 
+    push eax
     ; copy memory
 
     ; source segment
@@ -60,43 +73,64 @@ log_buf:
     mov ecx, [ebp + 12]
     mov esi, [ebp + 8]
     pop edi
-    add edi, 0x800000 + 16
+    add edi, log_buffer + 16
     sub edi, ecx
+    cld
     rep
     movsb
-
+.ret:
     ; restore registers
     pop es
     pop ds
     pop edi
     pop esi
-    pop ecx
     pop  ebp
     ret
 
 
-; eax = buf, ebx = len
-sys_log:
-    push ebx
-    push eax
-    call sys_log_c
-    add  esp, 8
-    iretd
+sync_log_buf:
+    mov  ecx, [log_buffer]
+    test ecx, ecx
+    jz .rt
 
-; call_sys_log(buf, len)
-call_sys_log:
-    push ebp
-    mov  ebp, esp
-    push ebx
-    mov  ebx, [ebp + 12]
-    mov  eax, [ebp + 8]
-    int  0x81
-    add  esp, 8
-    pop ebx
-    pop ebp
+    push edi
+    mov  edi, log_buffer + 16
+
+    push ecx
+    push edi
+
+; \0 means string copy not completed
+    mov ax, 0
+    cld
+    repne scasb
+    jz .check_failed
+
+    pop edi
+    pop ecx
+
+    mov  dx, 0x3f8 + 5
+.ready:
+    in  al, dx
+    test al, 0x20
+    jz .ready
+
+.write:
+    mov  dx, 0x3f8
+    mov  ax, [edi] 
+    mov byte [edi], 0
+    out  dx, ax
+    inc  edi
+    mov  dx, 0x3f8 + 5
+    loop .ready
+
+    mov dword [log_buffer], 0
+    pop edi
+.rt:
     ret
-
-get_cs:
-   mov ax, cs
-   ret
+.check_failed:
+    add esp, 8
+    pop edi
+    ret
     
+
+

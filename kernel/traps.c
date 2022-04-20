@@ -4,7 +4,6 @@
 void page_fault(void); // int14(mm/page.s)
 
 extern void *idt_ptrs[256];
-extern void sys_log(void *, int);
 
 /**
  * 异常(陷阱)中断程序初始化
@@ -20,7 +19,6 @@ void trap_init(void) {
     idt[i].a = (idt[i].a & (~0xffffL)) | (off & 0xffffL);
   }
   set_trap_gate(14, &page_fault);
-  set_system_gate(0x81, &sys_log);
 }
 
 int sys_setup() { return 0; }

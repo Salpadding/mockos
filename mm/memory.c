@@ -108,7 +108,6 @@ void do_wp_page(unsigned long error_code, unsigned long address) {
 }
 
 void un_wp_page(unsigned long *table_entry) {
-  printm("un_wp_page\n");
   unsigned long old_page, new_page;
 
   old_page = 0xfffff000 & *table_entry;

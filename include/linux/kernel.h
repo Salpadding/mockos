@@ -27,7 +27,6 @@ extern int blankcount;      /* 黑屏时间计数 */
 
 extern int timer_interrupt(void);
 extern int atomic_add(int*, int);
-extern void log_buf(char*, int);
 
 #define free(x) free_s((x), 0)
 

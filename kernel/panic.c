@@ -2,6 +2,7 @@
 
 void panic(const char *str) {
  printm(str);
-  __asm__("cli\n\t"
-          "hlt\n\t");
+    
+  // __asm__("cli\n\t"
+  //         "hlt\n\t");
 }

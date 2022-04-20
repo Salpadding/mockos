@@ -176,6 +176,7 @@ timer_interrupt:
 	movl $0x17,%eax
 	mov %ax,%fs
 	incl jiffies
+    call sync_log_buf
 	movb $0x20,%al		# EOI to interrupt controller #1
 	outb %al,$0x20
 	movl CS(%esp),%eax
@@ -198,6 +199,5 @@ sys_fork:
 	pushl %ebp
 	pushl %eax
 	call copy_process
-    call switch_to_c
     addl $20, %esp
 1:  ret
