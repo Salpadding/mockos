@@ -10,5 +10,8 @@ which multipass &>/dev/null
 if [ $? -ne 0 ]; then
   do_make
 else
-  multipass exec primary -- bash $CUR/make.sh
+    docker run --network none --rm \
+        -v /Volumes/dev/Github/mockos:/Volumes/dev/Github/mockos \
+        -w /Volumes/dev/Github/mockos \
+        gcc-3.4 make
 fi

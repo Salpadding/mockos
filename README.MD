@@ -381,3 +381,52 @@ out dx, al
 ```
 
 这里其实是在对中断芯片进行编程
+
+
+## 磁盘驱动
+
+经过调试发现 读取磁盘的汇编指令如下
+
+```asm
+; 0x3f6 = 0x1f0 + 0x206 在操作系统真相还原中定义为 reg_alt_status
+; 也叫做控制块寄存器
+mov dx, 0x3f6
+mov ax, 0x00c8
+out dx, al
+
+; 0x1f1 在操作系统真相还原里面定义为 reg_error
+; 
+mov dx, 0x1f1
+mov ax, 0x3fff
+out dx, al
+
+; 这一步是写入要读的扇区数量
+mov dx, 0x1f2
+mov ax, 0x0002
+out dx, al
+
+; lba 地址的低 8 位
+mov dx, 0x1f3
+mov ax, 0x0001
+out dx, al
+
+; lba 地址 8~15
+mov dx, 0x1f4
+mov ax, 0000
+out dx, al
+
+; lba 地址 16~23
+mov dx, 0x1f5
+mov ax, 0x0000
+out dx, al
+
+; lba 24~27; 同时也是选择磁盘 
+mov dx, 0x1f6
+mov ax, 0x00a0
+out dx, al
+
+; 发出读的指令
+mov dx, 0x1f7
+mov ax, 0x0020
+out dx, al
+```

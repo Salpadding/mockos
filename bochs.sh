@@ -3,9 +3,10 @@ CUR=`dirname $0`
 
 export OSLAB_PATH=$CUR/oslab
 
-if [[ $OSTYPE == darwin* ]]; then
-    ~/opt/bochs/bin/bochs -q -f $CUR/bochsrc.mac.txt
+HOST=`hostname`
+if [[ $HOST == LGR* ]]; then
+    bochs -q -f $CUR/bochsrc.m1.txt
 else
-    bochs -q -f $CUR/bochsrc.linux.txt
+    bochs -q -f $CUR/bochsrc.intel.txt
 fi
 

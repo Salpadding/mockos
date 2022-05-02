@@ -9,3 +9,6 @@ tools/build
 .vscode
 bx_enh*
 *.map
+
+boot/setup
+hdc.img.lock

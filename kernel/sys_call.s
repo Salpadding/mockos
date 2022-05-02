@@ -93,7 +93,7 @@ ENOSYS = 38
  * Ok, I get parallel printer interrupts while using the floppy for some
  * strange reason. Urgel. Now I just ignore them.
  */
-.globl timer_interrupt, system_call, sys_fork
+.globl timer_interrupt, system_call, sys_fork, timer_bp
 
 
 .align 4
@@ -176,6 +176,7 @@ timer_interrupt:
 	movl $0x17,%eax
 	mov %ax,%fs
 	incl jiffies
+timer_bp:
     call sync_log_buf
 	movb $0x20,%al		# EOI to interrupt controller #1
 	outb %al,$0x20

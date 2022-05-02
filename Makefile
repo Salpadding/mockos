@@ -11,6 +11,8 @@ LDFLAGS	= -M -x -Ttext 0 -e startup_32
 # -fno-builtin(新增): 阻止gcc会把没有参数的printf优化成puts
 CFLAGS = -Wall -O -fstrength-reduce -fomit-frame-pointer -fno-builtin -Iinclude
 
+DRIVERS=kernel/blk_drv/blk_drv.a
+
 Image: boot/bootsect boot/setup tools/system tools/build
 	@cp -f tools/system system.tmp > /dev/null
 	@strip system.tmp > /dev/null # remove symbols
@@ -38,8 +40,11 @@ init/main.o: init/main.c
 tools/build: tools/build.c 
 	$(CC) -o $@ $^
 
-tools/system: boot/head.o init/main.o mm/mm.o kernel/kernel.o lib/lib.a
+tools/system: boot/head.o init/main.o mm/mm.o kernel/kernel.o lib/lib.a $(DRIVERS)
 	$(LD) $(LDFLAGS) -o $@ $^ > System.map
+
+kernel/blk_drv/blk_drv.a: FORCE
+	@(cd kernel/blk_drv; make)
 
 .PHONY: clean FORCE
 
@@ -51,5 +56,6 @@ clean:
 	@rm -f tools/build
 	@(cd mm; $(MAKE) clean)
 	@(cd kernel; $(MAKE) clean)
+	@(cd kernel/blk_drv; $(MAKE) clean)
 
 -include init/main.d
