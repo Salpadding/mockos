@@ -9,6 +9,7 @@ LDFLAGS	= -M -x -Ttext 0 -e startup_32
 # -fcombine-regs(去除): 不再被gcc支持
 # -mstring-insns(去除): Linus本人增加的选项(gcc中没有)
 # -fno-builtin(新增): 阻止gcc会把没有参数的printf优化成puts
+
 CFLAGS = -Wall -O -fstrength-reduce -fomit-frame-pointer -fno-builtin -Iinclude
 
 DRIVERS=kernel/blk_drv/blk_drv.a
@@ -40,8 +41,11 @@ init/main.o: init/main.c
 tools/build: tools/build.c 
 	$(CC) -o $@ $^
 
-tools/system: boot/head.o init/main.o mm/mm.o kernel/kernel.o lib/lib.a $(DRIVERS)
+tools/system: boot/head.o init/main.o mm/mm.o kernel/kernel.o fs/fs.o lib/lib.a $(DRIVERS)
 	$(LD) $(LDFLAGS) -o $@ $^ > System.map
+
+fs/fs.o: FORCE
+	@(cd fs; make)
 
 kernel/blk_drv/blk_drv.a: FORCE
 	@(cd kernel/blk_drv; make)

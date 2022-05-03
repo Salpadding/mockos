@@ -146,9 +146,9 @@ ret_from_sys_call:
 	movl %ebx,signal(%eax)
 	incl %ecx
 	pushl %ecx
-	# call do_signal
+	# call do_signal 暂时不处理信号
 	popl %ecx
-	# testl %eax, %eax
+	# testl %eax, %eax 不处理信号
 	# jne 2b		# see if we need to switch tasks, or do more signals
 3:	popl %eax
 	popl %ebx
@@ -177,7 +177,7 @@ timer_interrupt:
 	mov %ax,%fs
 	incl jiffies
 timer_bp:
-    call sync_log_buf
+    call sync_log_buf_2
 	movb $0x20,%al		# EOI to interrupt controller #1
 	outb %al,$0x20
 	movl CS(%esp),%eax

@@ -113,6 +113,8 @@ int sys_pause(void) {
   return 0;
 }
 
+
+// 简易调度器 不考虑 priority
 void __attribute__((noinline)) schedule() {
   // a simple scheduler, always switch to the next task
   int i;
@@ -157,7 +159,7 @@ static inline void __sleep_on(struct task_struct **p, int state) {
     panic("task[0] trying to sleep");
   }
   tmp = *p;
-  *p = current;
+  *p = current; // current 只有 switch_to 能修改
   // printm("__sleep_on: set pid %d state = %d\n", current->pid, state);
   current->state = state;
 repeat:

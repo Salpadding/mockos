@@ -3,7 +3,6 @@ section .text
 global hd_interrupt
 extern hd_timeout ; 一个全局变量
 extern do_hd ; 一个函数指针
-extern __hd_int
 extern unexpected_hd_int; 
 
 %macro gen 1
@@ -88,7 +87,7 @@ hd_interrupt:
     mov  edx, unexpected_hd_int
 .l3:
     out 0x20, al
-    call [edx]
+    call edx
     pop fs
     pop es
     pop ds
